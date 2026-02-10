@@ -23,13 +23,15 @@ interface TutorButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'floating'
   label?: string
   conversationId?: number
+  initialPrompt?: string
 }
 
 export default function TutorButton({
   context,
   variant = 'default',
   label = 'Ask Geography Tutor',
-  conversationId
+  conversationId,
+  initialPrompt
 }: TutorButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
@@ -54,6 +56,7 @@ export default function TutorButton({
           onClose={() => setIsOpen(false)}
           context={context}
           conversationId={conversationId}
+          initialPrompt={initialPrompt}
         />
       </>
     )
@@ -77,6 +80,7 @@ export default function TutorButton({
         onClose={() => setIsOpen(false)}
         context={context}
         conversationId={conversationId}
+        initialPrompt={initialPrompt}
       />
     </>
   )
@@ -88,33 +92,41 @@ export default function TutorButton({
  */
 interface ContextualPromptProps {
   context: TutorButtonProps['context']
-  preloadedQuestion?: string
   prompt: string
   conversationId?: number
 }
 
 export function TutorContextualPrompt({
   context,
-  preloadedQuestion,
   prompt,
   conversationId
 }: ContextualPromptProps) {
   const [isOpen, setIsOpen] = useState(false)
 
+  const handleClick = () => {
+    setIsOpen(true)
+  }
+
   return (
     <>
-      <div className="my-4 p-4 bg-blue-50 border-l-4 border-blue-600 rounded-r-lg">
+      <div 
+        onClick={handleClick}
+        className="my-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-l-4 border-blue-400 rounded-r-lg cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02] group"
+      >
         <div className="flex items-start gap-3">
-          <Sparkles className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+          <div className="text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+            💭
+          </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-blue-900">💭 {prompt}</p>
-            <Button
-              variant="link"
-              className="h-auto p-0 text-blue-700 hover:text-blue-900 text-sm"
-              onClick={() => setIsOpen(true)}
-            >
-              Ask the Geography Tutor →
-            </Button>
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+              Think about it...
+            </p>
+            <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+              {prompt}
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              Click to explore with your AI tutor →
+            </p>
           </div>
         </div>
       </div>
@@ -124,6 +136,7 @@ export function TutorContextualPrompt({
         onClose={() => setIsOpen(false)}
         context={context}
         conversationId={conversationId}
+        initialPrompt={prompt}
       />
     </>
   )

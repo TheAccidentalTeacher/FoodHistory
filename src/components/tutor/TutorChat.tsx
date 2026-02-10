@@ -36,6 +36,7 @@ interface TutorChatProps {
   onClose: () => void
   context: TutorContext
   conversationId?: number
+  initialPrompt?: string
 }
 
 const THEME_COLORS: Record<string, string> = {
@@ -53,11 +54,12 @@ const STARTER_QUESTIONS = [
   "Help me find videos about this topic"
 ]
 
-export default function TutorChat({ isOpen, onClose, context, conversationId: initialConvoId }: TutorChatProps) {
+export default function TutorChat({ isOpen, onClose, context, conversationId: initialConvoId, initialPrompt }: TutorChatProps) {
   const [messages, setMessages] = useState<TutorMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState<number | undefined>(initialConvoId)
+  const [hasAutoSent, setHasAutoSent] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -81,6 +83,17 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
       loadConversationHistory()
     }
   }, [conversationId])
+
+  // Auto-send initial prompt when chat opens with a contextual prompt
+  useEffect(() => {
+    if (isOpen && initialPrompt && !hasAutoSent && messages.length === 0) {
+      setHasAutoSent(true)
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        sendMessage(initialPrompt)
+      }, 300)
+    }
+  }, [isOpen, initialPrompt, hasAutoSent, messages.length])
 
   const loadConversationHistory = async () => {
     try {

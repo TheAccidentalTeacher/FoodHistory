@@ -7,11 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { BookOpen, Video, Map, CheckCircle, Clock } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import VideoPlayer from './VideoPlayer'
 import ActivityComponent from './ActivityComponent'
 import TutorButton from '@/components/tutor/TutorButton'
+import LessonContentRenderer from './LessonContentRenderer'
 
 interface LessonViewerProps {
   lesson: {
@@ -185,9 +184,15 @@ export default function LessonViewer({
               className="prose prose-slate dark:prose-invert max-w-none overflow-y-auto max-h-[600px]"
               onScroll={handleScroll}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {lesson.content}
-              </ReactMarkdown>
+              <LessonContentRenderer 
+                content={lesson.content}
+                context={{
+                  unit_id: lesson.unit_id,
+                  unit_title: unit?.title,
+                  lesson_id: parseInt(lesson.id),
+                  lesson_title: lesson.title
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
