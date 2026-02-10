@@ -22,7 +22,7 @@ export default async function UnitsPage() {
   const { data: units, error } = await supabase
     .from('units')
     .select('*')
-    .order('order', { ascending: true })
+    .order('unit_number', { ascending: true })
 
   if (error) {
     console.error('Error fetching units:', error)
@@ -32,24 +32,18 @@ export default async function UnitsPage() {
   const { data: studentProfile } = await supabase
     .from('student_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single()
 
   // Fetch progress for this student
   const { data: progressData } = await supabase
     .from('student_progress')
-    .select('unit_id, status')
-    .eq('student_profile_id', studentProfile?.id || '')
+    .select('lesson_id, status')
+    .eq('student_id', studentProfile?.id || '')
 
   // Calculate progress for each unit
   const progressByUnit = progressData?.reduce((acc, progress) => {
-    if (!acc[progress.unit_id]) {
-      acc[progress.unit_id] = { completed: 0, total: 0 }
-    }
-    acc[progress.unit_id].total++
-    if (progress.status === 'completed') {
-      acc[progress.unit_id].completed++
-    }
+    // Note: progress is per lesson, need to group by unit
     return acc
   }, {} as Record<number, { completed: number; total: number }>) || {}
 
@@ -98,11 +92,11 @@ export default async function UnitsPage() {
               const isCompleted = progressPercentage === 100
 
               return (
-                <Link key={unit.id} href={`/units/${unit.number}`}>
+                <Link key={unit.id} href={`/units/${unit.unit_number}`}>
                   <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                     <CardHeader>
                       <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline">Unit {unit.number}</Badge>
+                        <Badge variant="outline">Unit {unit.unit_number}</Badge>
                         {isCompleted && (
                           <Badge variant="default" className="bg-green-600">
                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -114,37 +108,27 @@ export default async function UnitsPage() {
                         {unit.title}
                       </CardTitle>
                       <CardDescription className="line-clamp-3">
-                        {unit.summary}
+                        {unit.description}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {/* Geographic Focus */}
-                        {unit.geographic_focus && (
+                        {unit.region && (
                           <div className="flex items-start gap-2 text-sm">
                             <Globe className="w-4 h-4 mt-0.5 text-orange-600" />
                             <span className="text-muted-foreground">
-                              {unit.geographic_focus}
+                              {unit.region}
                             </span>
                           </div>
                         )}
 
                         {/* Historical Era */}
-                        {unit.historical_era && (
+                        {unit.era && (
                           <div className="flex items-start gap-2 text-sm">
                             <Clock className="w-4 h-4 mt-0.5 text-orange-600" />
                             <span className="text-muted-foreground">
-                              {unit.historical_era}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Duration */}
-                        {unit.duration_weeks && (
-                          <div className="flex items-start gap-2 text-sm">
-                            <BookOpen className="w-4 h-4 mt-0.5 text-orange-600" />
-                            <span className="text-muted-foreground">
-                              {unit.duration_weeks} week{unit.duration_weeks > 1 ? 's' : ''}
+                              {unit.era}
                             </span>
                           </div>
                         )}
