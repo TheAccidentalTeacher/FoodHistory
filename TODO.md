@@ -44,26 +44,33 @@
 ---
 
 ### 2. **AI Tutor Integration**
-**Status:** API keys configured, feature not built  
-**Priority:** HIGH
+**Status:** API keys configured, pedagogical design complete  
+**Priority:** HIGH  
+**Design Doc:** See [AI-TUTOR-PEDAGOGICAL-DESIGN.md](./docs/AI-TUTOR-PEDAGOGICAL-DESIGN.md)
 
-**Requirements:**
-- [ ] Chat interface for students to ask questions
-- [ ] Context-aware responses (knows current lesson/unit)
-- [ ] Guided learning mode vs free exploration
-- [ ] Citation of lesson content in responses
-- [ ] Conversation history per student
+**Core Philosophy:**
+- **Socratic Method**: Guides students to discover answers through questioning
+- **5 Themes of Geography**: All discussions connect to Location, Place, Human-Environment Interaction, Movement, Region
+- **Conversational**: Drives curiosity, develops research skills, makes connections
+- **Integrated**: Throughout the app, not just a standalone chat
+- **Geography + History**: Always connects food to its geographic and historical context
+
+**Key Features:**
+- [ ] Persistent chat sidebar (slides in/out, doesn't navigate away)
+- [ ] Context-aware (knows current lesson, unit, what student is reading)
+- [ ] Embedded "Ask Tutor" buttons throughout content
+- [ ] Activity helper (brainstorming, organizing thoughts)
+- [ ] Video discovery assistant (helps develop search terms)
+- [ ] Map integration (geographic analysis questions)
+- [ ] Proactive assistance (initiates based on student behavior)
+- [ ] Conversation modes: Socratic Guide, Geographic Connector, Research Assistant, Curiosity Catalyst, Connection Maker
+
+**Conversation Tracking:**
+- [ ] Full conversation history per student
+- [ ] Tracks which geographic themes discussed
+- [ ] Measures engagement depth
 - [ ] Token usage tracking/limits
-- [ ] Choose between OpenAI and Anthropic
-- [ ] System prompts optimized for food history education
-
-**Suggested Features:**
-- [ ] "Ask about this lesson" button on lesson pages
-- [ ] Persistent chat sidebar
-- [ ] Pre-written starter questions
-- [ ] "Explain like I'm 5" mode
-- [ ] Quiz question explanations via AI
-- [ ] Activity hint system
+- [ ] Student thinking level assessment
 
 **Technical Stack:**
 ```typescript
