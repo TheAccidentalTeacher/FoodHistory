@@ -35,6 +35,7 @@ yarn-error.log*
 
 # credentials (never commit!)
 SUPABASE-CREDENTIALS.txt
+DEPLOYMENT-CREDENTIALS.md
 
 # vercel
 .vercel

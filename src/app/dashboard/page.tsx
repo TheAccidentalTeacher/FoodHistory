@@ -32,6 +32,25 @@ export default async function DashboardPage() {
   const profile = studentProfile || parentProfile
   const role = studentProfile ? 'student' : 'parent'
 
+  // If parent, fetch linked students
+  let linkedStudents: any[] = []
+  if (role === 'parent') {
+    const { data } = await supabase
+      .from('student_profiles')
+      .select(`
+        id,
+        email,
+        full_name,
+        age,
+        geography_skill_level,
+        created_at
+      `)
+      .eq('parent_id', user.id)
+      .order('created_at', { ascending: false })
+    
+    linkedStudents = data || []
+  }
+
   // Sign out function
   const signOut = async () => {
     'use server'
@@ -66,6 +85,56 @@ export default async function DashboardPage() {
         </Badge>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          {/* Parent - Linked Students Overview */}
+          {role === 'parent' && (
+            <Card className="md:col-span-2 lg:col-span-3">
+              <CardHeader>
+                <CardTitle>Your Students</CardTitle>
+                <CardDescription>Students linked to your account</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {linkedStudents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">
+                      No students linked yet. Add a student to get started!
+                    </p>
+                    <Link href="/dashboard/add-student">
+                      <Button>Add Your First Student</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {linkedStudents.map((student) => (
+                      <Card key={student.id}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{student.full_name}</CardTitle>
+                          <CardDescription>{student.email}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Age:</span>
+                              <span className="font-medium">{student.age}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Geography Level:</span>
+                              <Badge variant="secondary">{student.geography_skill_level}/10</Badge>
+                            </div>
+                            <Link href={`/progress?student=${student.id}`}>
+                              <Button variant="outline" size="sm" className="w-full mt-2">
+                                View Progress
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Student Stats */}
           {role === 'student' && studentProfile && (
             <>
@@ -177,6 +246,11 @@ export default async function DashboardPage() {
               )}
               {role === 'parent' && (
                 <>
+                  <Link href="/dashboard/add-student">
+                    <Button className="w-full" variant="default">
+                      Add Student
+                    </Button>
+                  </Link>
                   <Link href="/grading">
                     <Button className="w-full" variant="outline">
                       Grade Essays

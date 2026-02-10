@@ -9,9 +9,13 @@
  *   npm run seed -- --unit 4  # Seed only Unit 4
  */
 
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
+
+// Load environment variables from .env.local
+config({ path: '.env.local' })
 
 // Initialize Supabase client with service role key (bypasses RLS)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -108,22 +112,39 @@ function parseUnitMarkdown(filePath: string): {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
 
-    // Parse unit metadata
-    if (line.startsWith('# Unit ')) {
-      const match = line.match(/# Unit (\d+): (.+)/)
-      if (match) {
-        unit.number = parseInt(match[1])
-        unit.title = match[2]
-        unit.order = parseInt(match[1])
+    // Parse unit metadata (handle both formats: "# UNIT 5: Title" and "# UNIT 5 COMPLETE SPECIFICATION")
+    if (line.match(/^#\s+UNIT\s+\d+/i)) {
+      // Format 1: # UNIT 5: Title
+      const colonMatch = line.match(/^#\s+UNIT\s+(\d+):\s+(.+)/i)
+      if (colonMatch) {
+        unit.number = parseInt(colonMatch[1])
+        unit.title = colonMatch[2]
+        unit.order = parseInt(colonMatch[1])
+      } else {
+        // Format 2: # UNIT 5 COMPLETE SPECIFICATION (title on next line as ##)
+        const numberMatch = line.match(/^#\s+UNIT\s+(\d+)/i)
+        if (numberMatch && i + 1 < lines.length) {
+          unit.number = parseInt(numberMatch[1])
+          unit.order = parseInt(numberMatch[1])
+          // Look for title in next line with ##
+          const nextLine = lines[i + 1]
+          if (nextLine.startsWith('##')) {
+            unit.title = nextLine.replace(/^##\s*/, '').trim()
+          }
+        }
       }
     }
 
-    if (line.startsWith('**Geographic Focus:**')) {
-      unit.geographic_focus = lines[i + 1]?.trim() || ''
+    // Parse geographic focus (handle both same-line and next-line formats)
+    if (line.includes('**Geographic Focus:**')) {
+      const sameLine = line.split('**Geographic Focus:**')[1]?.trim()
+      unit.geographic_focus = sameLine || lines[i + 1]?.trim() || ''
     }
 
-    if (line.startsWith('**Historical Era:**')) {
-      unit.historical_era = lines[i + 1]?.trim() || ''
+    // Parse historical era (handle both formats)
+    if (line.includes('**Historical Era:**')) {
+      const sameLine = line.split('**Historical Era:**')[1]?.trim()
+      unit.historical_era = sameLine || lines[i + 1]?.trim() || ''
     }
 
     if (line.startsWith('**Duration:**')) {
@@ -264,9 +285,19 @@ async function seedUnit(unitNumber: number) {
 
     // Insert unit
     console.log(`  📝 Inserting unit: ${unit.title}`)
+    
+    // Map parsed unit data to database schema (truncate long values)
+    const unitData = {
+      unit_number: unit.number,
+      title: unit.title,
+      description: (unit.summary || '').substring(0, 500),
+      era: (unit.historical_era || '').substring(0, 100),
+      region: (unit.geographic_focus || '').substring(0, 100)
+    }
+    
     const { data: insertedUnit, error: unitError } = await supabase
       .from('units')
-      .upsert(unit, { onConflict: 'number' })
+      .upsert(unitData, { onConflict: 'unit_number' })
       .select()
       .single()
 
@@ -279,12 +310,21 @@ async function seedUnit(unitNumber: number) {
 
     // Insert lessons
     for (const lesson of lessons) {
-      lesson.unit_id = insertedUnit.id
       console.log(`    📄 Inserting Lesson ${lesson.lesson_number}: ${lesson.title}`)
+      
+      // Map lesson data to database schema
+      const lessonData = {
+        unit_id: insertedUnit.id,
+        lesson_number: lesson.lesson_number,
+        title: lesson.title,
+        content: lesson.content || '',
+        reading_time_minutes: lesson.reading_time_minutes || null,
+        objectives: lesson.learning_objectives || []
+      }
 
       const { data: insertedLesson, error: lessonError } = await supabase
         .from('lessons')
-        .upsert(lesson, { onConflict: 'unit_id,lesson_number' })
+        .upsert(lessonData, { onConflict: 'unit_id,lesson_number' })
         .select()
         .single()
 
@@ -375,8 +415,8 @@ async function main() {
   } else {
     console.log('🎯 Seeding all available units\n')
 
-    // Seed Units 4, 5, 6 (the ones we have complete specifications for)
-    const unitsToSeed = [4, 5, 6]
+    // Seed Units 1-6 (all complete specifications)
+    const unitsToSeed = [1, 2, 3, 4, 5, 6]
 
     for (const unitNum of unitsToSeed) {
       await seedUnit(unitNum)
