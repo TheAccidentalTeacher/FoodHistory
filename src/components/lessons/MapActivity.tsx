@@ -28,7 +28,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
   const [continents, setContinents] = useState<Record<string, ContinentData>>({
     africa: {
       name: 'Africa',
-      bounds: [[37, -18], [-35, -18], [-35, 52], [37, 52]],
+      bounds: [[37, -18], [-35, -18], [-35, 52], [37, 52]] as [number, number][],
       color: '#f97316',
       foods: ['Coffee (Ethiopia)', 'Okra', 'Watermelon', 'Yams', 'Sorghum', 'Kola nuts'],
       fact: 'Africa has incredible agricultural diversity! Different regions developed different crops.',
@@ -36,7 +36,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
     },
     asia: {
       name: 'Asia',
-      bounds: [[55, 25], [-10, 25], [-10, 150], [55, 150]],
+      bounds: [[55, 25], [-10, 25], [-10, 150], [55, 150]] as [number, number][],
       color: '#ef4444',
       foods: ['Rice', 'Tea (China)', 'Black pepper (India)', 'Cinnamon (Sri Lanka)', 'Soybeans', 'Mangoes'],
       fact: 'Asia was the origin of the spice trade that shaped world history for thousands of years.',
@@ -44,7 +44,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
     },
     europe: {
       name: 'Europe',
-      bounds: [[71, -25], [36, -25], [36, 45], [71, 45]],
+      bounds: [[71, -25], [36, -25], [36, 45], [71, 45]] as [number, number][],
       color: '#3b82f6',
       foods: ['Wheat varieties', 'Olives', 'Grapes', 'Oats', 'Beets', 'Many cheeses'],
       fact: 'Many "European" foods actually came from elsewhere! Tomatoes, potatoes, and corn all arrived AFTER 1492.',
@@ -52,7 +52,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
     },
     northAmerica: {
       name: 'North America',
-      bounds: [[72, -170], [15, -170], [15, -52], [72, -52]],
+      bounds: [[72, -170], [15, -170], [15, -52], [72, -52]] as [number, number][],
       color: '#10b981',
       foods: ['Corn/Maize', 'Wild rice', 'Squash', 'Beans', 'Blueberries', 'Pecans', 'Sunflowers'],
       fact: 'The "Three Sisters" (corn, beans, squash) were grown together in an ingenious agricultural system.',
@@ -60,7 +60,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
     },
     southAmerica: {
       name: 'South America',
-      bounds: [[13, -82], [-56, -82], [-56, -34], [13, -34]],
+      bounds: [[13, -82], [-56, -82], [-56, -34], [13, -34]] as [number, number][],
       color: '#8b5cf6',
       foods: ['Potatoes (Andes)', 'Tomatoes', 'Cacao (chocolate!)', 'Quinoa', 'Peppers', 'Avocados', 'Pineapple'],
       fact: 'Potatoes were domesticated in the Andes mountains. There are over 4,000 varieties!',
@@ -68,7 +68,7 @@ export default function MapActivity({ onComplete }: MapActivityProps) {
     },
     oceania: {
       name: 'Oceania',
-      bounds: [[-10, 110], [-50, 110], [-50, 180], [-10, 180]],
+      bounds: [[-10, 110], [-50, 110], [-50, 180], [-10, 180]] as [number, number][],
       color: '#06b6d4',
       foods: ['Taro', 'Coconut', 'Breadfruit', 'Macadamia nuts (Australia)'],
       fact: 'Island cultures developed unique agricultural adaptations and food preservation methods for seafaring.',
