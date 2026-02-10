@@ -31,7 +31,7 @@ export default async function UnitDetailPage({ params }: PageProps) {
   const { data: unit, error: unitError } = await supabase
     .from('units')
     .select('*')
-    .eq('number', unitNumber)
+    .eq('unit_number', unitNumber)
     .single()
 
   if (unitError || !unit) {
@@ -57,21 +57,26 @@ export default async function UnitDetailPage({ params }: PageProps) {
     .from('lessons')
     .select('*, videos(*)')
     .eq('unit_id', unit.id)
-    .order('order', { ascending: true })
+    .order('lesson_number', { ascending: true })
 
-  // Fetch student profile
+  // Fetch student profile (id = auth user id in this schema)
   const { data: studentProfile } = await supabase
     .from('student_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single()
 
+  // Get lesson IDs for this unit to filter progress
+  const lessonIds = lessons?.map(l => l.id) || []
+
   // Fetch progress for this unit's lessons
-  const { data: progressData } = await supabase
-    .from('student_progress')
-    .select('lesson_id, status')
-    .eq('student_profile_id', studentProfile?.id || '')
-    .eq('unit_id', unit.id)
+  const { data: progressData } = lessonIds.length > 0
+    ? await supabase
+        .from('student_progress')
+        .select('lesson_id, status')
+        .eq('student_id', studentProfile?.id || '')
+        .in('lesson_id', lessonIds)
+    : { data: [] }
 
   const progressByLesson = progressData?.reduce((acc, p) => {
     acc[p.lesson_id] = p.status
@@ -98,11 +103,11 @@ export default async function UnitDetailPage({ params }: PageProps) {
             <div className="flex justify-between items-start">
               <div>
                 <Badge variant="outline" className="mb-2">
-                  Unit {unit.number}
+                  Unit {unit.unit_number}
                 </Badge>
                 <CardTitle className="text-3xl mb-2">{unit.title}</CardTitle>
                 <CardDescription className="text-base">
-                  {unit.summary}
+                  {unit.description}
                 </CardDescription>
               </div>
             </div>
@@ -110,46 +115,23 @@ export default async function UnitDetailPage({ params }: PageProps) {
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
               {/* Geographic Focus */}
-              {unit.geographic_focus && (
+              {unit.region && (
                 <div>
                   <h4 className="font-semibold text-sm mb-1">Geographic Focus</h4>
-                  <p className="text-sm text-muted-foreground">{unit.geographic_focus}</p>
+                  <p className="text-sm text-muted-foreground">{unit.region}</p>
                 </div>
               )}
 
               {/* Historical Era */}
-              {unit.historical_era && (
+              {unit.era && (
                 <div>
                   <h4 className="font-semibold text-sm mb-1">Historical Era</h4>
-                  <p className="text-sm text-muted-foreground">{unit.historical_era}</p>
-                </div>
-              )}
-
-              {/* Duration */}
-              {unit.duration_weeks && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Duration</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {unit.duration_weeks} week{unit.duration_weeks > 1 ? 's' : ''}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{unit.era}</p>
                 </div>
               )}
             </div>
 
-            {/* Learning Objectives */}
-            {unit.learning_objectives && Array.isArray(unit.learning_objectives) && unit.learning_objectives.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                  <Target className="w-4 h-4" />
-                  Learning Objectives
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  {unit.learning_objectives.map((objective: string, index: number) => (
-                    <li key={index}>{objective}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+
 
             {/* Progress */}
             <div>

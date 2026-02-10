@@ -11,9 +11,9 @@ interface Activity {
   activity_type: string
   title: string
   instructions: string
-  content: any
-  points: number
-  order: number
+  activity_data: any
+  points_possible: number
+  sequence_order: number
 }
 
 interface ActivityComponentProps {
@@ -60,7 +60,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
               Arrange these events in chronological order.
             </p>
             <div className="space-y-2">
-              {activity.content?.events?.map((event: string, index: number) => (
+              {activity.activity_data?.events?.map((event: string, index: number) => (
                 <div
                   key={index}
                   className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 cursor-move"
@@ -81,7 +81,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <h4 className="font-semibold text-sm">Column A</h4>
-                {activity.content?.columnA?.map((item: string, index: number) => (
+                {activity.activity_data?.columnA?.map((item: string, index: number) => (
                   <div
                     key={index}
                     className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
@@ -92,7 +92,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
               </div>
               <div className="space-y-2">
                 <h4 className="font-semibold text-sm">Column B</h4>
-                {activity.content?.columnB?.map((item: string, index: number) => (
+                {activity.activity_data?.columnB?.map((item: string, index: number) => (
                   <div
                     key={index}
                     className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
@@ -113,7 +113,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
             </p>
             <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
               <p className="text-sm leading-relaxed">
-                {activity.content?.text || 'Activity content not available'}
+                {activity.activity_data?.text || 'Activity content not available'}
               </p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
                 Completed
               </Badge>
             )}
-            <Badge variant="outline">{activity.points} points</Badge>
+            <Badge variant="outline">{activity.points_possible} points</Badge>
           </div>
         </div>
       </CardHeader>
@@ -162,7 +162,7 @@ export default function ActivityComponent({ activity }: ActivityComponentProps) 
                   Great job!
                 </p>
                 <p className="text-sm text-green-800 dark:text-green-200 mt-1">
-                  You've completed this activity and earned {activity.points} points.
+                  You've completed this activity and earned {activity.points_possible} points.
                 </p>
               </div>
             </div>

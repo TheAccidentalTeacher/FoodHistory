@@ -56,13 +56,11 @@ export default function SignupPage() {
       const { error: profileError } = await supabase
         .from('student_profiles')
         .insert({
-          user_id: authData.user.id,
-          first_name: firstName,
-          last_name: lastName,
-          age: parseInt(age),
-          geography_baseline: 2,
-          geography_current: 2,
-          culinary_skill_level: 5,
+          id: authData.user.id,
+          email: email,
+          full_name: `${firstName} ${lastName}`,
+          age: parseInt(age) || null,
+          geography_skill_level: 2,
         })
 
       if (profileError) {
@@ -74,9 +72,9 @@ export default function SignupPage() {
       const { error: profileError } = await supabase
         .from('parent_profiles')
         .insert({
-          user_id: authData.user.id,
-          first_name: firstName,
-          last_name: lastName,
+          id: authData.user.id,
+          email: email,
+          full_name: `${firstName} ${lastName}`,
         })
 
       if (profileError) {

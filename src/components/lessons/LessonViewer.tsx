@@ -18,7 +18,7 @@ interface LessonViewerProps {
     title: string
     content: string
     reading_time_minutes: number
-    learning_objectives: string[]
+    objectives: string[]
     unit_id: number
   }
   videos: Array<{
@@ -26,16 +26,16 @@ interface LessonViewerProps {
     youtube_id: string
     title: string
     description: string
-    order: number
+    sequence_order: number
   }>
   activities: Array<{
     id: string
     activity_type: string
     title: string
     instructions: string
-    content: any
-    points: number
-    order: number
+    activity_data: any
+    points_possible: number
+    sequence_order: number
   }>
   hasQuiz: boolean
   onStartQuiz?: () => void
@@ -96,14 +96,14 @@ export default function LessonViewer({
       </div>
 
       {/* Learning Objectives */}
-      {lesson.learning_objectives && lesson.learning_objectives.length > 0 && (
+      {lesson.objectives && lesson.objectives.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg">Learning Objectives</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="list-disc list-inside space-y-1">
-              {lesson.learning_objectives.map((objective, index) => (
+              {lesson.objectives.map((objective, index) => (
                 <li key={index} className="text-sm">
                   {objective}
                 </li>

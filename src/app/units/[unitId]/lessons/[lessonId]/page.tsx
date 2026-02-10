@@ -55,35 +55,34 @@ export default async function LessonPage({ params }: PageProps) {
     .from('videos')
     .select('*')
     .eq('lesson_id', lessonId)
-    .order('order', { ascending: true })
+    .order('sequence_order', { ascending: true })
 
   // Fetch activities for this lesson
   const { data: activities } = await supabase
     .from('activities')
     .select('*')
     .eq('lesson_id', lessonId)
-    .order('order', { ascending: true })
+    .order('sequence_order', { ascending: true })
 
   // Check if there's a quiz for this lesson
   const { data: quiz } = await supabase
     .from('quizzes')
     .select('id')
     .eq('lesson_id', lessonId)
-    .eq('quiz_type', 'lesson')
     .single()
 
-  // Fetch student profile
+  // Fetch student profile (id = auth user id in this schema)
   const { data: studentProfile } = await supabase
     .from('student_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single()
 
   // Check if lesson is completed
   const { data: progress } = await supabase
     .from('student_progress')
     .select('status')
-    .eq('student_profile_id', studentProfile?.id || '')
+    .eq('student_id', studentProfile?.id || '')
     .eq('lesson_id', lessonId)
     .single()
 
@@ -105,7 +104,7 @@ export default async function LessonPage({ params }: PageProps) {
     const { data: studentProfile } = await supabase
       .from('student_profiles')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (!studentProfile) return
@@ -114,13 +113,12 @@ export default async function LessonPage({ params }: PageProps) {
     await supabase
       .from('student_progress')
       .upsert({
-        student_profile_id: studentProfile.id,
-        unit_id: lesson.unit_id,
+        student_id: studentProfile.id,
         lesson_id: lessonId,
         status: 'completed',
         completed_at: new Date().toISOString()
       }, {
-        onConflict: 'student_profile_id,lesson_id'
+        onConflict: 'student_id,lesson_id'
       })
 
     redirect(`/units/${unitId}`)

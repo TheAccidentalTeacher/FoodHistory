@@ -227,9 +227,9 @@ export default async function DashboardPage() {
               </Link>
               {role === 'student' && (
                 <>
-                  <Link href="/units/4">
+                  <Link href="/units/1">
                     <Button className="w-full" variant="outline">
-                      Start Unit 4
+                      Start Unit 1
                     </Button>
                   </Link>
                   <Link href="/geography">
