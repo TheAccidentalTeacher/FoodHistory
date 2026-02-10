@@ -522,14 +522,13 @@ async function seedUnit(unitNumber: number) {
               .from('quiz_questions')
               .insert({
                 quiz_id: insertedQuiz.id,
-                question_number: question.sequence_order,
-                question_type: question.question_type,
                 question_text: question.question_text,
-                options: question.options ? JSON.stringify(question.options) : null,
-                correct_answer: question.correct_answer,
-                explanation: question.explanation || 'No explanation provided.',
+                question_type: question.question_type,
+                correct_answer: question.correct_answer || '',
+                answer_options: question.options || null,
                 points: question.points,
-                order_index: question.sequence_order
+                explanation: question.explanation || 'No explanation provided.',
+                sequence_order: question.sequence_order
               })
 
             if (questionError) {
