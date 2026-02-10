@@ -1,17 +1,7 @@
 /**
- * Database Seeding Script for Food Throughout History
- * 
- * Properly parses unit specification files to extract:
- * - Clean reading content (for beautiful lesson display)
- * - Video metadata (YouTube IDs or search terms)
- * - Activity specifications  
- * - Quiz questions
- * 
- * NO MORE AI SLOP - only clean, formatted educational content!
- * 
- * Usage:
- *   npm run seed              # Seed all units
- *   npm run seed -- --unit 4  # Seed only Unit 4
+ * Database Seeding Script - CLEAN CONTENT EXTRACTION
+ * Extracts beautiful, formatted lesson content from specification files
+ * NO metadata, NO section numbers, NO AI slop - just clean educational content
  */
 
 import { config } from 'dotenv'
@@ -21,117 +11,87 @@ import * as path from 'path'
 
 config({ path: '.env.local' })
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing environment variables')
-  process.exit(1)
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false }
-})
-
-interface ParsedUnit {
-  number: number
-  title: string
-  description: string
-  era: string
-  region: string
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 interface ParsedLesson {
   lesson_number: number
   title: string
-  content: string // ONLY the reading content, beautifully formatted
+  content: string
   reading_time_minutes: number
   objectives: string[]
 }
 
-interface ParsedVideo {
-  title: string
-  description: string
-  search_terms: string
-  duration_seconds: number
-}
-
 /**
- * Extract ONLY the reading content section from a lesson
- * Handles two formats:
- * - Format A (Unit 1): Has explicit "## READING CONTENT" section
- * - Format B (Units 2-6): Content starts immediately after lesson header
+ * Extract lesson content - simple approach
+ * Just grab everything between lesson header and next major section
+ * Clean up section metadata headers but keep all content
  */
-function extractReadingContent(lessonText: string): string {
+function extractCleanContent(lessonText: string): string {
   const lines = lessonText.split('\n')
-  let content: string[] = []
-  let inReadingSection = false
-  let foundReadingStart = false
+  const output: string[] = []
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
 
-  // Check if this lesson uses Format A (has "## READING CONTENT" header)
-  const hasExplicitReadingSection = lessonText.match(/^##\s+READING CONTENT/im)
-
-  if (hasExplicitReadingSection) {
-    // FORMAT A: Extract between "## READING CONTENT" and next major section
-    for (const line of lines) {
-      if (line.match(/^##\s+READING CONTENT/i)) {
-        inReadingSection = true
-        foundReadingStart = true
-        continue
-      }
-
-      if (foundReadingStart && line.match(/^##\s+(VIDEOS|INTERACTIVE|GEOGRAPHY|QUIZ|LESSON COMPLETION)/i)) {
-        break
-      }
-
-      if (inReadingSection) {
-        if (line.match(/^\(.*minutes total\)/)) continue
-        content.push(line)
-      }
+    // Skip the first line if it's the lesson header
+    if (i === 0 && trimmed.match(/^#{1,2}\s+(?:LESSON|Lesson)\s+\d+:/i)) {
+      continue
     }
-  } else {
-    // FORMAT B: Extract from start until first major H2 section (VIDEOS, ACTIVITIES, etc.)
-    // Skip the lesson title line itself
-    let startCollecting = false
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-      
-      // Skip the first line if it's the lesson header
-      if (i === 0 && line.match(/^#{1,2}\s+(?:LESSON|Lesson)\s+\d+:/i)) {
-        startCollecting = true
-        continue
-      }
-      
-      // Stop at metadata sections or next lesson
-      if (startCollecting && line.match(/^##\s+(VIDEOS|VIDEO|INTERACTIVE|GEOGRAPHY|QUIZ|LESSON|Lesson\s+\d+:|UNIT\s+\d+\s+ESSAY)/i)) {
-        break
-      }
-      
-      if (startCollecting) {
-        content.push(line)
-      }
+
+    // Stop at these major sections
+    if (trimmed.match(/^##\s+(VIDEOS?|INTERACTIVE|GEOGRAPHY|QUIZ|LESSON\s+COMPLETION)/i)) {
+      break
     }
+
+    // Stop at next lesson
+    if (i > 0 && trimmed.match(/^#{1,2}\s+(?:LESSON|Lesson)\s+\d+:/i)) {
+      break
+    }
+
+    // Stop at unit-level sections
+    if (trimmed.match(/^#\s+UNIT\s+\d+\s+(ESSAY|PROJECT|TEST|COMPLETION)/i)) {
+      break
+    }
+
+    // Skip "## READING CONTENT" header
+    if (trimmed.match(/^##\s+(?:READING\s+CONTENT|Lesson\s+Metadata)/i)) {
+      continue
+    }
+
+    // Skip duration metadata lines
+    if (trimmed.match(/^\(.*minutes.*\)$/i)) {
+      continue
+    }
+
+    // Skip section headers with duration: "### Section 1: Title (7 minutes, ~900 words)"
+    // But DON'T skip regular headers
+    if (trimmed.match(/^###\s+.+\(\d+\s+minutes?,\s*~?\d+\s*words?\)/i)) {
+      continue
+    }
+
+    // Remove "Section N:" prefix from headers if present
+    if (trimmed.match(/^###\s+Section\s+\d+:/i)) {
+      output.push(line.replace(/^(###\s+)Section\s+\d+:\s+/i, '$1'))
+      continue
+    }
+
+    // Include everything else
+    output.push(line)
   }
 
-  // Clean up the content
-  let cleaned = content.join('\n').trim()
-  
-  // Remove duration metadata from section headers
-  cleaned = cleaned.replace(/###\s+(.+?)\s+\(\d+\s+minutes?,\s*~?\d+\s*words?\)/g, '### $1')
-  
-  // Remove "Section N:" prefix but keep section titles
-  cleaned = cleaned.replace(/###\s+Section\s+\d+:\s+/g, '### ')
-  
-  return cleaned
+  return output.join('\n').trim()
 }
 
 /**
- * Parse unit metadata from the file header
+ * Parse unit metadata from file header
  */
-function parseUnitMetadata(content: string): ParsedUnit {
+function parseUnitMetadata(content: string) {
   const lines = content.split('\n')
-  
   let unitNumber = 0
   let unitTitle = ''
   let era = 'Not specified'
@@ -140,21 +100,15 @@ function parseUnitMetadata(content: string): ParsedUnit {
 
   for (let i = 0; i < Math.min(lines.length, 150); i++) {
     const line = lines[i]
-
-    // Unit title from first H1
     const h1Match = line.match(/^#\s+UNIT\s+(\d+):\s+(.+)/i)
     if (h1Match) {
       unitNumber = parseInt(h1Match[1])
       unitTitle = h1Match[2].trim()
     }
-
-    // Geographic Focus
     if (line.includes('**Geographic Focus:**')) {
       const after = line.split('**Geographic Focus:**')[1]?.trim()
       region = after || lines[i + 1]?.trim() || region
     }
-
-    // Historical Era
     if (line.includes('**Historical Era:**')) {
       const after = line.split('**Historical Era:**')[1]?.trim()
       era = after || lines[i + 1]?.trim() || era
@@ -162,39 +116,33 @@ function parseUnitMetadata(content: string): ParsedUnit {
   }
 
   // Build description from Unit Overview
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].match(/^##\s+UNIT OVERVIEW/i)) {
-      let desc = ''
-      for (let j = i + 1; j < Math.min(i + 30, lines.length); j++) {
-        const l = lines[j].trim()
-        if (l && !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('---') && !l.startsWith('-')) {
-          desc += l + ' '
-          if (desc.length > 200) break
-        }
-      }
-      description = desc.trim().substring(0, 500)
-      break
-    }
+  const overviewMatch = content.match(/##\s+UNIT OVERVIEW([\s\S]{200,800}?)(?=#{1,3}|$)/i)
+  if (overviewMatch) {
+    description = overviewMatch[1]
+      .split('\n')
+      .filter(l => {
+        const t = l.trim()
+        return t && !t.startsWith('#') && !t.startsWith('**') && !t.startsWith('-') && !t.startsWith('---')
+      })
+      .join(' ')
+      .trim()
+      .substring(0, 500)
   }
-
-  if (!description) description = unitTitle
 
   return {
     number: unitNumber,
     title: unitTitle.substring(0, 200),
-    description: description.substring(0, 500),
+    description: description || unitTitle.substring(0, 500),
     era: era.substring(0, 100),
     region: region.substring(0, 100)
   }
 }
 
 /**
- * Extract all lessons from a unit specification file
+ * Parse all lessons from unit file
  */
 function parseAllLessons(content: string): ParsedLesson[] {
   const lessons: ParsedLesson[] = []
-  
-  // Split by lesson headers (# LESSON N: or ## Lesson N:)
   const lessonPattern = /^#{1,2}\s+(?:LESSON|Lesson)\s+(\d+):\s+(.+)/gm
   const matches = Array.from(content.matchAll(lessonPattern))
 
@@ -204,27 +152,23 @@ function parseAllLessons(content: string): ParsedLesson[] {
     const lessonTitle = match[2].trim()
     const startIndex = match.index!
     const endIndex = i < matches.length - 1 ? matches[i + 1].index! : content.length
-
     const lessonText = content.substring(startIndex, endIndex)
+
+    const cleanContent = extractCleanContent(lessonText)
     
-    // Extract ONLY the reading content
-    const readingContent = extractReadingContent(lessonText)
-    
-    if (!readingContent) {
-      console.log(`    ⚠️  Warning: No reading content found for Lesson ${lessonNum}`)
+    if (!cleanContent || cleanContent.length < 100) {
+      console.log(`    ⚠️  Warning: Lesson ${lessonNum} has no substantial content`)
       continue
     }
 
-    // Estimate reading time from word count
-    const wordCount = readingContent.split(/\s+/).length
-    const readingTime = Math.max(10, Math.ceil(wordCount / 200)) // 200 words/minute
+    const wordCount = cleanContent.split(/\s+/).length
+    const readingTime = Math.max(10, Math.ceil(wordCount / 200))
 
-    // Extract objectives if present
+    // Extract objectives
     const objectives: string[] = []
-    const objectivesMatch = lessonText.match(/###\s+Learning Objectives([\s\S]+?)(?=###|##|$)/i)
-    if (objectivesMatch) {
-      const objText = objectivesMatch[1]
-      const objMatches = objText.match(/^\d+\.\s+(.+)/gm)
+    const objMatch = lessonText.match(/###\s+Learning Objectives([\s\S]+?)(?=###|##|$)/i)
+    if (objMatch) {
+      const objMatches = objMatch[1].match(/^\d+\.\s+(.+)/gm)
       if (objMatches) {
         objectives.push(...objMatches.map(s => s.replace(/^\d+\.\s+/, '').trim()).slice(0, 5))
       }
@@ -233,26 +177,27 @@ function parseAllLessons(content: string): ParsedLesson[] {
     lessons.push({
       lesson_number: lessonNum,
       title: lessonTitle.substring(0, 200),
-      content: readingContent,
+      content: cleanContent,
       reading_time_minutes: readingTime,
       objectives
     })
+
+    console.log(`    ✅ Lesson ${lessonNum}: ${lessonTitle}`)
+    console.log(`       ${wordCount} words, ~${readingTime} min read`)
   }
 
   return lessons
 }
 
 /**
- * Seed a single unit into the database
+ * Seed a single unit
  */
 async function seedUnit(unitNumber: number) {
   console.log(`\n📦 Seeding Unit ${unitNumber}...`)
 
-  // Unit spec files are in the project root
   const unitFilePath = path.join(process.cwd(), `UNIT-${unitNumber}-COMPLETE-SPECIFICATION.md`)
-  
   if (!fs.existsSync(unitFilePath)) {
-    console.error(`  ❌ File not found: ${unitFilePath}`)
+    console.error(`  ❌ File not found`)
     return false
   }
 
@@ -266,10 +211,8 @@ async function seedUnit(unitNumber: number) {
       return false
     }
 
-    console.log(`  📝 Unit: ${unit.title}`)
-    console.log(`  📍 Region: ${unit.region}`)
-    console.log(`  🕐 Era: ${unit.era}`)
-    console.log(`  📖 Lessons found: ${lessons.length}`)
+    console.log(`  📝 ${unit.title}`)
+    console.log(`  📖 ${lessons.length} lessons extracted`)
 
     // Upsert unit
     const { data: insertedUnit, error: unitError } = await supabase
@@ -289,14 +232,12 @@ async function seedUnit(unitNumber: number) {
       return false
     }
 
-    console.log(`  ✅ Unit upserted with ID: ${insertedUnit.id}`)
-
-    // Delete existing lessons for clean re-seed
+    // Delete old lessons
     await supabase.from('lessons').delete().eq('unit_id', insertedUnit.id)
 
     // Insert lessons
     for (const lesson of lessons) {
-      const { error: lessonError } = await supabase
+      const { error } = await supabase
         .from('lessons')
         .insert({
           unit_id: insertedUnit.id,
@@ -307,20 +248,15 @@ async function seedUnit(unitNumber: number) {
           objectives: lesson.objectives,
         })
 
-      if (lessonError) {
-        console.error(`    ❌ Lesson ${lesson.lesson_number}: ${lessonError.message}`)
-      } else {
-        const preview = lesson.content.substring(0, 100).replace(/\n/g, ' ')
-        console.log(`    ✅ Lesson ${lesson.lesson_number}: ${lesson.title}`)
-        console.log(`       Content preview: "${preview}..."`)
-        console.log(`       ${lesson.content.split(/\s+/).length} words, ~${lesson.reading_time_minutes} min`)
+      if (error) {
+        console.error(`    ❌ Error inserting lesson ${lesson.lesson_number}:`, error.message)
       }
     }
 
     console.log(`  ✅ Unit ${unitNumber} seeded successfully!`)
     return true
   } catch (error) {
-    console.error(`  ❌ Error seeding unit ${unitNumber}:`, error)
+    console.error(`  ❌ Error:`, error)
     return false
   }
 }
@@ -330,20 +266,18 @@ async function main() {
   const unitFlag = args.indexOf('--unit')
   const specificUnit = unitFlag !== -1 ? parseInt(args[unitFlag + 1]) : null
 
-  console.log('🌱 Food Throughout History - Database Seeder (Clean Content Mode)')
-  console.log(`📡 Connected to: ${supabaseUrl}\n`)
+  console.log('🌱 Food Throughout History - Clean Content Seeder')
+  console.log(`📡 ${process.env.NEXT_PUBLIC_SUPABASE_URL}\n`)
 
   if (specificUnit) {
-    console.log(`🎯 Seeding Unit ${specificUnit} only`)
     await seedUnit(specificUnit)
   } else {
-    console.log('🎯 Seeding all available units')
     for (let i = 1; i <= 6; i++) {
       await seedUnit(i)
     }
   }
 
-  console.log('\n🎉 Seeding complete! Content should now be clean and well-formatted.')
+  console.log('\n🎉 Seeding complete!')
 }
 
 main().catch(console.error)
