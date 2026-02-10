@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     if (referencedThemes.length > 0) {
       const { data: currentConvo } = await supabase
         .from('tutor_conversations')
-        .select('geographic_themes_discussed')
+        .select('geographic_themes_discussed, inquiry_depth')
         .eq('id', activeConversationId)
         .single()
 
