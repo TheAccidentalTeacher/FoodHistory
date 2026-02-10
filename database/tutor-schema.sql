@@ -4,7 +4,7 @@
 -- Main conversation tracking
 CREATE TABLE tutor_conversations (
   id BIGSERIAL PRIMARY KEY,
-  student_id BIGINT REFERENCES student_profiles(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES student_profiles(id) ON DELETE CASCADE,
   unit_id BIGINT REFERENCES units(id) ON DELETE SET NULL,
   lesson_id BIGINT REFERENCES lessons(id) ON DELETE SET NULL,
   
@@ -61,15 +61,15 @@ ALTER TABLE tutor_messages ENABLE ROW LEVEL SECURITY;
 -- Students can only see their own conversations
 CREATE POLICY "Students can view own conversations" ON tutor_conversations
   FOR SELECT
-  USING (auth.uid()::TEXT = student_id::TEXT);
+  USING (auth.uid() = student_id);
 
 CREATE POLICY "Students can create conversations" ON tutor_conversations
   FOR INSERT
-  WITH CHECK (auth.uid()::TEXT = student_id::TEXT);
+  WITH CHECK (auth.uid() = student_id);
 
 CREATE POLICY "Students can update own conversations" ON tutor_conversations
   FOR UPDATE
-  USING (auth.uid()::TEXT = student_id::TEXT);
+  USING (auth.uid() = student_id);
 
 -- Students can only see messages from their conversations
 CREATE POLICY "Students can view own messages" ON tutor_messages
@@ -78,7 +78,7 @@ CREATE POLICY "Students can view own messages" ON tutor_messages
     EXISTS (
       SELECT 1 FROM tutor_conversations
       WHERE id = tutor_messages.conversation_id
-      AND auth.uid()::TEXT = student_id::TEXT
+      AND auth.uid() = student_id
     )
   );
 
@@ -88,7 +88,7 @@ CREATE POLICY "Students can create messages" ON tutor_messages
     EXISTS (
       SELECT 1 FROM tutor_conversations
       WHERE id = tutor_messages.conversation_id
-      AND auth.uid()::TEXT = student_id::TEXT
+      AND auth.uid() = student_id
     )
   );
 
@@ -98,7 +98,7 @@ CREATE POLICY "Teachers can view all conversations" ON tutor_conversations
   USING (
     EXISTS (
       SELECT 1 FROM teacher_profiles
-      WHERE user_id::TEXT = auth.uid()::TEXT
+      WHERE user_id = auth.uid()
     )
   );
 
@@ -107,7 +107,7 @@ CREATE POLICY "Teachers can view all messages" ON tutor_messages
   USING (
     EXISTS (
       SELECT 1 FROM teacher_profiles
-      WHERE user_id::TEXT = auth.uid()::TEXT
+      WHERE user_id = auth.uid()
     )
   );
 
