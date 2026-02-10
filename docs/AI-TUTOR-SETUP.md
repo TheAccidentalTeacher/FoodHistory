@@ -71,8 +71,37 @@ The AI Tutor should:
 
 ## Next Steps
 
-- [ ] Add contextual prompts in lesson content (Phase 2)
-- [ ] Proactive assistance when students struggle (Phase 3)
-- [ ] Activity helpers with pre-loaded questions
+### Phase 2: Contextual Prompts (NOW IMPLEMENTED!)
+
+Contextual prompts are now embedded in lesson content. To activate:
+
+1. **Run the SQL script** to add prompts to Unit 1:
+   ```bash
+   # In Supabase SQL Editor, run:
+   database/add-contextual-prompts.sql
+   ```
+
+2. **How it works:**
+   - Beautiful "💭 Think about it..." boxes appear inline with lesson text
+   - Prompts spark curiosity where students naturally wonder "why?"
+   - Clicking a prompt opens the tutor with that question pre-loaded
+   - AI responds contextually based on what the student was reading
+
+3. **Example prompts in lessons:**
+   - "Have you ever wondered why rice is a staple food in Asia but not in Europe?"
+   - "Think about your breakfast this morning. Where did each item come from?"
+   - "If climate determines what can grow, how might climate change affect available foods?"
+
+4. **Testing:**
+   - Navigate to Unit 1, Lesson 1
+   - Scroll through the reading tab
+   - Look for gradient-colored prompt boxes
+   - Click one - the tutor should open and automatically ask the question
+   - AI should reference what you were reading
+
+### Future Phases:
+
+- [ ] Phase 3: Proactive assistance when students struggle
+- [ ] Phase 4: Activity helpers with pre-loaded questions
 - [ ] Video discovery integration
 - [ ] Map geographic analysis prompts
