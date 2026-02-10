@@ -89,7 +89,7 @@ export default async function QuizPage({ params }: PageProps) {
     .order('created_at', { ascending: false })
 
   const attemptCount = attempts?.length || 0
-  const hasPassedBefore = attempts?.some(a => (a.score_percentage || 0) >= quiz.passing_score)
+  const hasPassedBefore = attempts?.some(a => (a.score_percentage || 0) >= quiz.passing_score) || false
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 dark:from-slate-900 dark:to-slate-800">
