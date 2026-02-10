@@ -23,6 +23,44 @@ interface ParsedLesson {
   content: string
   reading_time_minutes: number
   objectives: string[]
+  videos: ParsedVideo[]
+  activities: ParsedActivity[]
+  quiz: ParsedQuiz | null
+}
+
+interface ParsedVideo {
+  title: string
+  description: string
+  youtube_id: string
+  duration_seconds: number
+  sequence_order: number
+}
+
+interface ParsedActivity {
+  title: string
+  activity_type: string
+  instructions: string
+  activity_data: any
+  points_possible: number
+  sequence_order: number
+}
+
+interface ParsedQuiz {
+  title: string
+  time_limit_minutes: number | null
+  passing_score: number
+  max_attempts: number | null
+  questions: ParsedQuizQuestion[]
+}
+
+interface ParsedQuizQuestion {
+  question_text: string
+  question_type: 'multiple_choice' | 'short_answer'
+  correct_answer: string
+  options: string[] | null
+  points: number
+  sequence_order: number
+  explanation: string | null
 }
 
 /**
@@ -85,6 +123,160 @@ function extractCleanContent(lessonText: string): string {
   }
 
   return output.join('\n').trim()
+}
+
+/**
+ * Extract videos from VIDEOS section
+ */
+function extractVideos(lessonText: string): ParsedVideo[] {
+  const videos: ParsedVideo[] = []
+  const videoRegex = /###\s+Video\s+\d+:\s+"(.+?)"\s+\((\d+)-?(\d+)?\s+minutes\)/gi
+  let match
+  let seqOrder = 1
+
+  while ((match = videoRegex.exec(lessonText)) !== null) {
+    const title = match[1]
+    const minDuration = parseInt(match[2])
+    const maxDuration = match[3] ? parseInt(match[3]) : minDuration
+    const avgDuration = Math.round((minDuration + maxDuration) / 2)
+
+    videos.push({
+      title,
+      description: `Educational video: ${title}`,
+      youtube_id: 'PLACEHOLDER', // Will be populated manually or via YouTube API
+      duration_seconds: avgDuration * 60,
+      sequence_order: seqOrder++
+    })
+  }
+
+  return videos
+}
+
+/**
+ * Extract activities from INTERACTIVE ACTIVITIES section
+ */
+function extractActivities(lessonText: string): ParsedActivity[] {
+  const activities: ParsedActivity[] = []
+  
+  // Match activity headers like "### Activity 1: Personal Food History Reflection (12 minutes)"
+  const activityRegex = /###\s+Activity\s+\d+:\s+(.+?)\s+\(\d+\s+minutes\)/gi
+  const matches = lessonText.matchAll(activityRegex)
+  let seqOrder = 1
+
+  for (const match of matches) {
+    const title = match[1]
+    
+    // Determine activity type based on title keywords
+    let activity_type = 'reflection'
+    if (title.toLowerCase().includes('map') || title.toLowerCase().includes('geography') || title.toLowerCase().includes('continent')) {
+      activity_type = 'map_interaction'
+    } else if (title.toLowerCase().includes('quiz') || title.toLowerCase().includes('question')) {
+      activity_type = 'quiz'
+    } else if (title.toLowerCase().includes('timeline') || title.toLowerCase().includes('chronology')) {
+      activity_type = 'timeline'
+    }
+
+    activities.push({
+      title,
+      activity_type,
+      instructions: `Complete the ${title.toLowerCase()} activity`,
+      activity_data: { type: activity_type },
+      points_possible: 10,
+      sequence_order: seqOrder++
+    })
+  }
+
+  return activities
+}
+
+/**
+ * Extract quiz from LESSON QUIZ section
+ */
+function extractQuiz(lessonText: string): ParsedQuiz | null {
+  // Check if there's a quiz section
+  if (!lessonText.includes('## LESSON QUIZ')) {
+    return null
+  }
+
+  const questions: ParsedQuizQuestion[] = []
+  
+  // Extract passing score
+  const passingScoreMatch = lessonText.match(/\*\*Passing Score:\*\*\s+(\d+)%/i)
+  const passingScore = passingScoreMatch ? parseInt(passingScoreMatch[1]) : 80
+
+  // Extract max attempts
+  const maxAttemptsMatch = lessonText.match(/\*\*Retakes Allowed:\*\*\s+Up to\s+(\d+)/i)
+  const maxAttempts = maxAttemptsMatch ? parseInt(maxAttemptsMatch[1]) : 3
+
+  // Extract each question block - match from **Question N:** to next **Question or **Expected
+  const questionBlocks = lessonText.split(/(?=\*\*Question\s+\d+:)/gi).slice(1)
+
+  let seqOrder = 1
+  for (const block of questionBlocks) {
+    // Stop at short answer questions section (handled separately)
+    if (block.includes('**Expected Answer Elements:**') || block.includes('### Short Answer')) {
+      break
+    }
+
+    // Extract question number and text
+    const questionMatch = block.match(/\*\*Question\s+(\d+):\*\*\s*\n(.+?)\n([A-D]\))/s)
+    if (!questionMatch) continue
+
+    const questionText = questionMatch[2].trim()
+
+    // Extract all options (A through D)
+    const optionMatches = [...block.matchAll(/([A-D])\)\s+(.+?)(?:\s+✓)?\s*\n/g)]
+    if (optionMatches.length < 2) continue
+
+    const options = optionMatches.map(m => m[2].trim())
+    
+    // Find correct answer (marked with ✓)
+    const correctMatch = optionMatches.find(m => m[0].includes('✓'))
+    const correctAnswer = correctMatch ? correctMatch[1] : 'B'
+
+    // Extract explanation
+    const explanationMatch = block.match(/\*\*Explanation:\*\*\s+(.+?)(?=\n\n|\n---|$)/s)
+    const explanation = explanationMatch ? explanationMatch[1].trim() : null
+
+    questions.push({
+      question_text: questionText,
+      question_type: 'multiple_choice',
+      correct_answer: correctAnswer,
+      options,
+      points: 5,
+      sequence_order: seqOrder++,
+      explanation
+    })
+  }
+
+  // Extract short answer questions if any
+  const shortAnswerRegex = /\*\*Question\s+(\d+):\*\*\s*\n(.+?)\n\n\*\*Expected Answer Elements:\*\*/gs
+  let saMatch
+  while ((saMatch = shortAnswerRegex.exec(lessonText)) !== null && seqOrder <= 15) {
+    const questionText = saMatch[2].trim()
+
+    questions.push({
+      question_text: questionText,
+      question_type: 'short_answer',
+      correct_answer: '', // Will need manual grading or AI grading
+      options: null,
+      points: 5,
+      sequence_order: seqOrder++,
+      explanation: 'This question requires written response and will be graded based on key concepts.'
+    })
+  }
+
+  if (questions.length === 0) {
+    return null
+  }
+
+  return {
+    title: 'Lesson Quiz',
+    time_limit_minutes: null,
+    passing_score: passingScore,
+    max_attempts: maxAttempts,
+    questions
+  }
 }
 
 /**
@@ -174,16 +366,27 @@ function parseAllLessons(content: string): ParsedLesson[] {
       }
     }
 
+    // Extract videos, activities, and quiz
+    const videos = extractVideos(lessonText)
+    const activities = extractActivities(lessonText)
+    const quiz = extractQuiz(lessonText)
+
     lessons.push({
       lesson_number: lessonNum,
       title: lessonTitle.substring(0, 200),
       content: cleanContent,
       reading_time_minutes: readingTime,
-      objectives
+      objectives,
+      videos,
+      activities,
+      quiz
     })
 
     console.log(`    ✅ Lesson ${lessonNum}: ${lessonTitle}`)
     console.log(`       ${wordCount} words, ~${readingTime} min read`)
+    if (videos.length > 0) console.log(`       ${videos.length} video(s)`)
+    if (activities.length > 0) console.log(`       ${activities.length} activity(ies)`)
+    if (quiz) console.log(`       Quiz with ${quiz.questions.length} questions`)
   }
 
   return lessons
@@ -232,12 +435,12 @@ async function seedUnit(unitNumber: number) {
       return false
     }
 
-    // Delete old lessons
+    // Delete old lessons (this will cascade delete videos, activities, quizzes)
     await supabase.from('lessons').delete().eq('unit_id', insertedUnit.id)
 
-    // Insert lessons
+    // Insert lessons with videos, activities, and quizzes
     for (const lesson of lessons) {
-      const { error } = await supabase
+      const { data: insertedLesson, error: lessonError } = await supabase
         .from('lessons')
         .insert({
           unit_id: insertedUnit.id,
@@ -247,9 +450,93 @@ async function seedUnit(unitNumber: number) {
           reading_time_minutes: lesson.reading_time_minutes,
           objectives: lesson.objectives,
         })
+        .select()
+        .single()
 
-      if (error) {
-        console.error(`    ❌ Error inserting lesson ${lesson.lesson_number}:`, error.message)
+      if (lessonError) {
+        console.error(`    ❌ Error inserting lesson ${lesson.lesson_number}:`, lessonError.message)
+        continue
+      }
+
+      // Insert videos for this lesson
+      if (lesson.videos.length > 0) {
+        for (const video of lesson.videos) {
+          const { error: videoError } = await supabase
+            .from('videos')
+            .insert({
+              lesson_id: insertedLesson.id,
+              title: video.title,
+              youtube_id: video.youtube_id,
+              duration_seconds: video.duration_seconds,
+              description: video.description,
+              sequence_order: video.sequence_order
+            })
+
+          if (videoError) {
+            console.error(`      ❌ Error inserting video:`, videoError.message)
+          }
+        }
+      }
+
+      // Insert activities for this lesson
+      if (lesson.activities.length > 0) {
+        for (const activity of lesson.activities) {
+          const { error: activityError } = await supabase
+            .from('activities')
+            .insert({
+              lesson_id: insertedLesson.id,
+              title: activity.title,
+              activity_type: activity.activity_type,
+              instructions: activity.instructions,
+              activity_data: activity.activity_data,
+              points_possible: activity.points_possible,
+              sequence_order: activity.sequence_order
+            })
+
+          if (activityError) {
+            console.error(`      ❌ Error inserting activity:`, activityError.message)
+          }
+        }
+      }
+
+      // Insert quiz for this lesson
+      if (lesson.quiz) {
+        const { data: insertedQuiz, error: quizError } = await supabase
+          .from('quizzes')
+          .insert({
+            lesson_id: insertedLesson.id,
+            title: lesson.quiz.title,
+            time_limit_minutes: lesson.quiz.time_limit_minutes,
+            passing_score: lesson.quiz.passing_score,
+            max_attempts: lesson.quiz.max_attempts
+          })
+          .select()
+          .single()
+
+        if (quizError) {
+          console.error(`      ❌ Error inserting quiz:`, quizError.message)
+        } else {
+          // Insert quiz questions
+          for (const question of lesson.quiz.questions) {
+            const { error: questionError } = await supabase
+              .from('quiz_questions')
+              .insert({
+                quiz_id: insertedQuiz.id,
+                question_number: question.sequence_order,
+                question_type: question.question_type,
+                question_text: question.question_text,
+                options: question.options ? JSON.stringify(question.options) : null,
+                correct_answer: question.correct_answer,
+                explanation: question.explanation || 'No explanation provided.',
+                points: question.points,
+                order_index: question.sequence_order
+              })
+
+            if (questionError) {
+              console.error(`      ❌ Error inserting quiz question:`, questionError.message)
+            }
+          }
+        }
       }
     }
 
