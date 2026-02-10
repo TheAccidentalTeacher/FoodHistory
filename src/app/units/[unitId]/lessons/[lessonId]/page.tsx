@@ -50,6 +50,13 @@ export default async function LessonPage({ params }: PageProps) {
     )
   }
 
+  // Fetch unit details
+  const { data: unit } = await supabase
+    .from('units')
+    .select('id, title')
+    .eq('id', unitId)
+    .single()
+
   // Fetch videos for this lesson
   const { data: videos } = await supabase
     .from('videos')
@@ -138,6 +145,7 @@ export default async function LessonPage({ params }: PageProps) {
       {/* Lesson Viewer */}
       <LessonViewer
         lesson={lesson}
+        unit={unit || undefined}
         videos={videos || []}
         activities={activities || []}
         hasQuiz={!!quiz}

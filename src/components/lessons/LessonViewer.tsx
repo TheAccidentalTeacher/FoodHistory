@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import VideoPlayer from './VideoPlayer'
 import ActivityComponent from './ActivityComponent'
+import TutorButton from '@/components/tutor/TutorButton'
 
 interface LessonViewerProps {
   lesson: {
@@ -20,6 +21,10 @@ interface LessonViewerProps {
     reading_time_minutes: number
     objectives: string[]
     unit_id: number
+  }
+  unit?: {
+    id: number
+    title: string
   }
   videos: Array<{
     id: string
@@ -45,6 +50,7 @@ interface LessonViewerProps {
 
 export default function LessonViewer({
   lesson,
+  unit,
   videos = [],
   activities = [],
   hasQuiz,
@@ -62,8 +68,27 @@ export default function LessonViewer({
     setReadingProgress(Math.min(Math.round(scrollPercentage), 100))
   }
 
+  // Determine activity type for tutor context
+  const getActivityType = () => {
+    if (activeTab === 'quiz') return 'quiz'
+    if (activeTab === 'activities') return 'reflection' // Most activities are reflections
+    if (activeTab === 'reading') return undefined
+    return undefined
+  }
+
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      {/* AI Tutor - Floating Button */}
+      <TutorButton
+        variant="floating"
+        context={{
+          unit_id: lesson.unit_id,
+          unit_title: unit?.title,
+          lesson_id: parseInt(lesson.id),
+          lesson_title: lesson.title,
+          activity_type: getActivityType()
+        }}
+      />
       {/* Lesson Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
