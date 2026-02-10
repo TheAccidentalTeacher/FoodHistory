@@ -20,13 +20,13 @@ export default async function DashboardPage() {
   const { data: studentProfile } = await supabase
     .from('student_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single()
 
   const { data: parentProfile } = await supabase
     .from('parent_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('id', user.id)
     .single()
 
   const profile = studentProfile || parentProfile
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">
-              Welcome back, {profile?.first_name}! 👋
+              Welcome back, {profile?.full_name?.split(' ')[0]}! 👋
             </h1>
             <p className="text-muted-foreground">
               Ready to explore food history today?
@@ -77,17 +77,17 @@ export default async function DashboardPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Baseline:</span>
-                      <Badge variant="outline">{studentProfile.geography_baseline}/10</Badge>
+                      <span className="text-sm text-muted-foreground">Current Level:</span>
+                      <Badge variant="default">{studentProfile.geography_skill_level}/10</Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Current:</span>
-                      <Badge variant="default">{studentProfile.geography_current}/10</Badge>
+                      <span className="text-sm text-muted-foreground">Target:</span>
+                      <Badge variant="outline">10/10</Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Improvement:</span>
-                      <Badge variant="default" className="bg-green-600">
-                        +{studentProfile.geography_current - studentProfile.geography_baseline}
+                      <span className="text-sm font-medium">To Go:</span>
+                      <Badge variant="secondary">
+                        {10 - studentProfile.geography_skill_level} levels
                       </Badge>
                     </div>
                   </div>
@@ -96,19 +96,20 @@ export default async function DashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Culinary Skills</CardTitle>
-                  <CardDescription>Your cooking expertise</CardDescription>
+                  <CardTitle>Your Profile</CardTitle>
+                  <CardDescription>Student information</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-center">
-                    <span className="text-5xl font-bold">
-                      {studentProfile.culinary_skill_level}
-                    </span>
-                    <span className="text-2xl text-muted-foreground">/10</span>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Age:</span>
+                      <span className="text-sm font-medium">{studentProfile.age}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Email:</span>
+                      <span className="text-sm font-medium">{studentProfile.email}</span>
+                    </div>
                   </div>
-                  <p className="text-center text-sm text-muted-foreground mt-2">
-                    Keep learning to improve!
-                  </p>
                 </CardContent>
               </Card>
 
@@ -145,7 +146,7 @@ export default async function DashboardPage() {
             <CardDescription>
               {role === 'student' 
                 ? 'Start your learning journey' 
-                : 'Manage your student's progress'}
+                : 'Manage your student\'s progress'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -205,8 +206,8 @@ export default async function DashboardPage() {
             </h3>
             <p className="text-sm text-muted-foreground">
               {role === 'student' 
-                ? "You're about to embark on an amazing journey through 10,000 years of culinary history. Explore 20 comprehensive units, master geography, and develop your skills as an aspiring chef. Let's get started!"
-                : "Monitor your student's progress through this comprehensive food history curriculum. Review their work, provide feedback, and watch them grow as a culinary historian and aspiring chef."}
+                ? "You are about to embark on an amazing journey through 10,000 years of culinary history. Explore 20 comprehensive units, master geography, and develop your skills as an aspiring chef. Let\'s get started!"
+                : "Monitor your student\'s progress through this comprehensive food history curriculum. Review their work, provide feedback, and watch them grow as a culinary historian and aspiring chef."}
             </p>
           </CardContent>
         </Card>
