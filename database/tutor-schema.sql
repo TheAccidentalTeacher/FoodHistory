@@ -92,25 +92,6 @@ CREATE POLICY "Students can create messages" ON tutor_messages
     )
   );
 
--- Teachers can view all conversations (for monitoring/support)
-CREATE POLICY "Teachers can view all conversations" ON tutor_conversations
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM teacher_profiles
-      WHERE user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Teachers can view all messages" ON tutor_messages
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM teacher_profiles
-      WHERE user_id = auth.uid()
-    )
-  );
-
 -- Function to update last_activity_at on new message
 CREATE OR REPLACE FUNCTION update_conversation_activity()
 RETURNS TRIGGER AS $$
