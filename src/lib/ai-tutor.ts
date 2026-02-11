@@ -123,7 +123,7 @@ function generateContextPrompt(context: TutorContext): string {
 export async function generateTutorResponse(
   messages: TutorMessage[],
   context: TutorContext,
-  provider: 'anthropic' | 'openai' = 'anthropic'
+  provider: 'anthropic' | 'openai' = 'openai' // Default to OpenAI
 ): Promise<{ content: string; tokens_used: number }> {
   
   if (provider === 'anthropic') {
@@ -201,7 +201,7 @@ async function generateWithOpenAI(
   ]
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-4o',
     messages: openaiMessages,
     max_tokens: 1024,
     temperature: 0.7
