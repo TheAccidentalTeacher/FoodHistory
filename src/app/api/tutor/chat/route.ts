@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import {
   generateTutorResponse,
   extractGeographicThemes,
@@ -50,8 +50,9 @@ export async function POST(request: NextRequest) {
     if (!student) {
       console.log('[TUTOR API] Student profile not found, creating one...')
       
-      // Auto-create a student profile for this user
-      const { data: newStudent, error: createError } = await supabase
+      // Use admin client to bypass RLS for profile creation
+      const adminClient = createAdminClient()
+      const { data: newStudent, error: createError } = await adminClient
         .from('student_profiles')
         .insert({
           user_id: user.id,
