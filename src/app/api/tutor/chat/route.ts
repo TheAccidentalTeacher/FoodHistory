@@ -19,12 +19,20 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
+  console.log('[TUTOR API] POST request received at:', new Date().toISOString())
+  console.log('[TUTOR API] Request URL:', request.url)
+  console.log('[TUTOR API] Request headers:', Object.fromEntries(request.headers.entries()))
+  
   try {
+    console.log('[TUTOR API] Creating Supabase client...')
     const supabase = await createClient()
     
     // Check authentication
+    console.log('[TUTOR API] Checking authentication...')
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('[TUTOR API] Auth result:', { user: user?.id, error: authError })
     if (authError || !user) {
+      console.log('[TUTOR API] Authentication failed:', authError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -32,6 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get student profile
+    console.log('[TUTOR API] Fetching student profile for user:', user.id)
     const { data: student } = await supabase
       .from('student_profiles')
       .select('id')
@@ -39,13 +48,21 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!student) {
+      console.log('[TUTOR API] Student profile not found for user:', user.id)
       return NextResponse.json(
         { error: 'Student profile not found' },
         { status: 404 }
       )
     }
+    console.log('[TUTOR API] Student profile found:', student.id)
 
+    console.log('[TUTOR API] Parsing request body...')
     const body = await request.json()
+    console.log('[TUTOR API] Request body:', { 
+      messageLength: body.message?.length,
+      hasConversationId: !!body.conversation_id,
+      hasContext: !!body.context
+    })
     const {
       message,
       conversation_id,

@@ -128,6 +128,12 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
     setLoading(true)
 
     try {
+      console.log('[TUTOR CHAT] Sending message:', {
+        messageLength: messageText.length,
+        conversationId,
+        hasContext: !!context
+      })
+      
       const response = await fetch('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,10 +144,27 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
         })
       })
 
-      const data = await response.json()
+      console.log('[TUTOR CHAT] Response status:', response.status, response.statusText)
+      console.log('[TUTOR CHAT] Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      let data
+      try {
+        data = await response.json()
+        console.log('[TUTOR CHAT] Response data:', data)
+      } catch (jsonError) {
+        console.error('[TUTOR CHAT] Failed to parse JSON:', jsonError)
+        const text = await response.text()
+        console.error('[TUTOR CHAT] Raw response:', text)
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`)
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send message')
+        console.error('[TUTOR CHAT] Request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: data
+        })
+        throw new Error(data.message || data.error || 'Failed to send message')
       }
 
       // Update conversation ID if this was first message
@@ -159,12 +182,17 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
-      console.error('Chat error:', error)
+      console.error('[TUTOR CHAT] Chat error:', error)
+      console.error('[TUTOR CHAT] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      console.error('[TUTOR CHAT] Error details:', {
+        name: error instanceof Error ? error.name : typeof error,
+        message: error instanceof Error ? error.message : String(error)
+      })
       
       // Show error message
       const errorMessage: TutorMessage = {
         role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again or refresh the page.',
+        content: `I apologize, but I encountered an error: ${error instanceof Error ? error.message : String(error)}. Please try again or refresh the page.`,
         timestamp: new Date().toISOString()
       }
       setMessages(prev => [...prev, errorMessage])
