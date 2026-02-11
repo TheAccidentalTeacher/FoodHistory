@@ -39,22 +39,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get student profile
+    // Get or create student profile
     console.log('[TUTOR API] Fetching student profile for user:', user.id)
-    const { data: student } = await supabase
+    let { data: student, error: profileError } = await supabase
       .from('student_profiles')
       .select('id')
       .eq('user_id', user.id)
       .single()
 
     if (!student) {
-      console.log('[TUTOR API] Student profile not found for user:', user.id)
-      return NextResponse.json(
-        { error: 'Student profile not found' },
-        { status: 404 }
-      )
+      console.log('[TUTOR API] Student profile not found, creating one...')
+      
+      // Auto-create a student profile for this user
+      const { data: newStudent, error: createError } = await supabase
+        .from('student_profiles')
+        .insert({
+          user_id: user.id,
+          first_name: user.email?.split('@')[0] || 'Student',
+          last_name: 'User',
+          geography_baseline: 2,
+          geography_current: 2,
+          culinary_skill_level: 5
+        })
+        .select('id')
+        .single()
+
+      if (createError || !newStudent) {
+        console.error('[TUTOR API] Failed to create student profile:', createError)
+        return NextResponse.json(
+          { error: 'Failed to create student profile', details: createError },
+          { status: 500 }
+        )
+      }
+
+      student = newStudent
+      console.log('[TUTOR API] Created new student profile:', student.id)
+    } else {
+      console.log('[TUTOR API] Student profile found:', student.id)
     }
-    console.log('[TUTOR API] Student profile found:', student.id)
 
     console.log('[TUTOR API] Parsing request body...')
     const body = await request.json()
@@ -238,18 +260,36 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get student profile
-    const { data: student } = await supabase
+    // Get or create student profile
+    let { data: student } = await supabase
       .from('student_profiles')
       .select('id')
       .eq('user_id', user.id)
       .single()
 
     if (!student) {
-      return NextResponse.json(
-        { error: 'Student profile not found' },
-        { status: 404 }
-      )
+      // Auto-create a student profile for this user
+      const { data: newStudent, error: createError } = await supabase
+        .from('student_profiles')
+        .insert({
+          user_id: user.id,
+          first_name: user.email?.split('@')[0] || 'Student',
+          last_name: 'User',
+          geography_baseline: 2,
+          geography_current: 2,
+          culinary_skill_level: 5
+        })
+        .select('id')
+        .single()
+
+      if (createError || !newStudent) {
+        return NextResponse.json(
+          { error: 'Failed to create student profile' },
+          { status: 500 }
+        )
+      }
+
+      student = newStudent
     }
 
     // Verify conversation belongs to student
