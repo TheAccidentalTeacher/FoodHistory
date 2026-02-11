@@ -7,7 +7,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 
 export interface TutorContext {
-  student_id: number
+  student_id?: number // Optional now that we simplified
   unit_id?: number
   unit_title?: string
   lesson_id?: number

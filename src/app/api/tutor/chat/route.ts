@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
 
     // Build context for AI
     const fullContext: TutorContext = {
-      unitId: context?.unitId,
-      lessonId: context?.lessonId,
-      currentParagraph: context?.currentParagraph,
-      activityType: context?.activityType
+      unit_id: context?.unit_id,
+      lesson_id: context?.lesson_id,
+      current_paragraph: context?.current_paragraph,
+      activity_type: context?.activity_type
     }
 
     // Get conversation history from client (no database needed)
