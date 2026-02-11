@@ -5,9 +5,6 @@
  * Handles conversational AI tutoring with geographic framework
  */
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -17,6 +14,9 @@ import {
   assessThinkingLevel,
   type TutorContext
 } from '@/lib/ai-tutor'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
