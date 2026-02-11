@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
 
     if (!student) {
       console.log('[TUTOR API] Student profile not found, creating one...')
+      console.log('[TUTOR API] Service role key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+      console.log('[TUTOR API] Service role key length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length)
       
       // Use admin client to bypass RLS for profile creation
       const adminClient = createAdminClient()
@@ -66,9 +68,20 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (createError || !newStudent) {
-        console.error('[TUTOR API] Failed to create student profile:', createError)
+        console.error('[TUTOR API] Failed to create student profile')
+        console.error('[TUTOR API] Error object:', JSON.stringify(createError, null, 2))
+        console.error('[TUTOR API] Error message:', createError?.message)
+        console.error('[TUTOR API] Error code:', createError?.code)
+        console.error('[TUTOR API] Error details:', createError?.details)
+        console.error('[TUTOR API] Error hint:', createError?.hint)
         return NextResponse.json(
-          { error: 'Failed to create student profile', details: createError },
+          { 
+            error: 'Failed to create student profile',
+            message: createError?.message,
+            code: createError?.code,
+            details: createError?.details,
+            hint: createError?.hint
+          },
           { status: 500 }
         )
       }
@@ -268,8 +281,9 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (!student) {
-      // Auto-create a student profile for this user
+    if (!student) {with admin client to bypass RLS
+      const adminClient = createAdminClient()
+      const { data: newStudent, error: createError } = await adminClient
       const { data: newStudent, error: createError } = await supabase
         .from('student_profiles')
         .insert({
