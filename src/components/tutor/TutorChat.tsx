@@ -130,22 +130,29 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
     try {
       console.log('[TUTOR CHAT] Sending message:', {
         messageLength: messageText.length,
-        conversationId,
+        historyLength: messages.length,
         hasContext: !!context
       })
+      
+      // Build conversation history to send to API
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
       
       const response = await fetch('/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageText,
-          conversation_id: conversationId,
-          context
+          context: {
+            ...context,
+            history: conversationHistory
+          }
         })
       })
 
       console.log('[TUTOR CHAT] Response status:', response.status, response.statusText)
-      console.log('[TUTOR CHAT] Response headers:', Object.fromEntries(response.headers.entries()))
       
       let data
       try {
@@ -165,11 +172,6 @@ export default function TutorChat({ isOpen, onClose, context, conversationId: in
           error: data
         })
         throw new Error(data.message || data.error || 'Failed to send message')
-      }
-
-      // Update conversation ID if this was first message
-      if (!conversationId && data.conversation_id) {
-        setConversationId(data.conversation_id)
       }
 
       const assistantMessage: TutorMessage = {
